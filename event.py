@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-from model import PointLensModel
-from data import Data
+from xlrp.model import PointLensModel
+from xlrp.data import Data
 
 
 class Event(object):
