@@ -90,6 +90,8 @@ class PointLensModel(object):
             self.__process_parallax()
         if "p_xi" in self.parameters.keys():
             self.__process_xallarap()
+        elif "t_0_2" in self.parameters.keys() and "u_0_2" in self.parameters.keys():
+            self.parameter_set_enabled.append("bins")
 
     def __process_parallax(self):
         self.parameter_set_enabled.append("prlx")
@@ -397,6 +399,16 @@ class PointLensModel(object):
         tau, beta = (self.jds - t_0) / t_E, u_0 * np.ones(len(self.jds))
         return tau, beta
 
+    def __get_trajectory_static_2s(self):
+        t_0 = self.parameters["t_0"]
+        u_0 = self.parameters["u_0"]
+        t_E = self.parameters["t_E"]
+        tau_1, beta_1 = (self.jds - t_0) / t_E, u_0 * np.ones(len(self.jds))
+        t_0_2 = self.parameters["t_0_2"]
+        u_0_2 = self.parameters["u_0_2"]
+        tau_2, beta_2 = (self.jds - t_0_2) / t_E, u_0_2 * np.ones(len(self.jds))
+        return tau_1, beta_1, tau_2, beta_2
+
     def __get_delta_trajectory_annual_parallax(self):
         pi_E_N, pi_E_E = self.parameters["pi_E_N"], self.parameters["pi_E_E"]
         pi_E_vec = np.array([pi_E_N, pi_E_E])
@@ -670,7 +682,76 @@ class PointLensModel(object):
             tau_2 = tau + delta_tau_xlrp_2
             beta_2 = beta + delta_beta_xlrp_2
             self.trajectory = np.array([tau_1, beta_1, tau_2, beta_2])
+        elif "bins" in self.parameter_set_enabled:
+            tau_1, beta_1, tau_2, beta_2 = self.__get_trajectory_static_2s()
+            tau_1 += delta_tau_prlx
+            beta_1 += delta_beta_prlx
+            tau_2 += delta_tau_prlx
+            beta_2 += delta_beta_prlx
+            self.trajectory = np.array([tau_1, beta_1, tau_2, beta_2])
         return self.trajectory
+
+    def get_magnification(self):
+        """
+        Compute the magnification of the source.
+        """
+        if (
+            "xlrp_circ_ti_2s" in self.parameter_set_enabled
+            or "bins" in self.parameter_set_enabled
+        ):
+            tau1, beta1, tau2, beta2 = self.get_trajectory()
+            u1 = np.sqrt(tau1**2 + beta1**2)
+            u2 = np.sqrt(tau2**2 + beta2**2)
+            magnification1 = (u1**2 + 2) / u1 / np.sqrt(u1**2 + 4)
+            magnification2 = (u2**2 + 2) / u2 / np.sqrt(u2**2 + 4)
+            if self.obname is None:
+                qf_xi = self.parameters["qf_xi"]
+            else:
+                qf_xi = self.parameters[f"qf_{self.obname}"]
+            self.magnification = magnification1 + qf_xi * magnification2
+        else:
+            tau, beta = self.get_trajectory()
+            u = np.sqrt(tau**2 + beta**2)
+            # Magnification without finite source effect
+            self.magnification = (u**2 + 2) / u / np.sqrt(u**2 + 4)
+
+        # TODO: 2s magnification
+
+        return self.magnification
+
+    def get_magnification_norm(self):
+        """
+        Get normalized magnification.
+        """
+        magnification_raw = self.get_magnification()
+        if (
+            "xlrp_circ_ti_2s" in self.parameter_set_enabled
+            or "bins" in self.parameter_set_enabled
+        ):
+            if self.obname is None:
+                qf_xi = self.parameters["qf_xi"]
+            else:
+                qf_xi = self.parameters[f"qf_{self.obname}"]
+            magnification_norm = magnification_raw / (1 + qf_xi)
+        else:
+            magnification_norm = magnification_raw.copy()
+        return magnification_norm
+
+    def get_light_curve(self, fs, fb, return_type="mag", zero_point_mag=18.0):
+        """
+        Compute the light curve.
+        """
+        self.get_magnification()
+        self.model_flux = fs * self.magnification + fb
+        self.model_mag = zero_point_mag - 2.5 * np.log10(self.model_flux)
+        if return_type == "flux":
+            return self.model_flux
+        elif return_type == "mag":
+            return self.model_mag
+        else:
+            raise ValueError(
+                'Unknown return type. Only "flux" and "mag" are supported.'
+            )
 
     def get_earth_vel_pos(self, return_type, time_format="jd"):
         t_ref, jds = self.t_0_par, self.jds
@@ -797,62 +878,6 @@ class PointLensModel(object):
 
     def get_std_traj(self):
         return self.__get_trajectory_std()
-
-    def get_magnification(self):
-        """
-        Compute the magnification of the source.
-        """
-        if "xlrp_circ_ti_2s" in self.parameter_set_enabled:
-            tau1, beta1, tau2, beta2 = self.get_trajectory()
-            u1 = np.sqrt(tau1**2 + beta1**2)
-            u2 = np.sqrt(tau2**2 + beta2**2)
-            magnification1 = (u1**2 + 2) / u1 / np.sqrt(u1**2 + 4)
-            magnification2 = (u2**2 + 2) / u2 / np.sqrt(u2**2 + 4)
-            if self.obname is None:
-                qf_xi = self.parameters["qf_xi"]
-            else:
-                qf_xi = self.parameters[f"qf_{self.obname}"]
-            self.magnification = magnification1 + qf_xi * magnification2
-        else:
-            tau, beta = self.get_trajectory()
-            u = np.sqrt(tau**2 + beta**2)
-            # Magnification without finite source effect
-            self.magnification = (u**2 + 2) / u / np.sqrt(u**2 + 4)
-
-        # TODO: 2s magnification
-
-        return self.magnification
-
-    def get_magnification_norm(self):
-        """
-        Get normalized magnification.
-        """
-        magnification_raw = self.get_magnification()
-        if "xlrp_circ_ti_2s" in self.parameter_set_enabled:
-            if self.obname is None:
-                qf_xi = self.parameters["qf_xi"]
-            else:
-                qf_xi = self.parameters[f"qf_{self.obname}"]
-            magnification_norm = magnification_raw / (1 + qf_xi)
-        else:
-            magnification_norm = magnification_raw.copy()
-        return magnification_norm
-
-    def get_light_curve(self, fs, fb, return_type="mag", zero_point_mag=18.0):
-        """
-        Compute the light curve.
-        """
-        self.get_magnification()
-        self.model_flux = fs * self.magnification + fb
-        self.model_mag = zero_point_mag - 2.5 * np.log10(self.model_flux)
-        if return_type == "flux":
-            return self.model_flux
-        elif return_type == "mag":
-            return self.model_mag
-        else:
-            raise ValueError(
-                'Unknown return type. Only "flux" and "mag" are supported.'
-            )
 
     def test_xlrp_2s_pos_vel(self):
         s1_test_tau, s1_test_beta, s2_test_tau, s2_test_beta = self.get_trajectory()
