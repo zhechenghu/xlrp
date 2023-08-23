@@ -33,21 +33,38 @@ class PointLensModel(object):
         ephemeris: np.ndarray | None = None,
         obname: str | None = None,
     ):
-        # Model informations
         self.obname = obname
         self.parameters = parameters.copy()
         self.parameter_set_enabled = ["std"]
-        if "pi_E_N" in self.parameters and "pi_E_E" in self.parameters:
-            self.parameter_set_enabled.append("prlx")
-            try:
-                self.t_0_par = self.parameters.pop("t_0_par")
-            except:
-                raise ValueError("t_0_par, required for parallax, is not defined.")
-            if ra is None or dec is None:
-                raise ValueError("ra and dec, required for parallax, are not defined.")
-            self.ra = ra
-            self.dec = dec
-            # Set the coordinates of the event
+        self.delta_sun = None
+        self.t_0_par = None
+        self.ra = None
+        self.dec = None
+        self.alpha = None
+        self.delta = None
+        self.ephemeris = None
+        self.neg_delta_sate: np.ndarray = None
+        self.t_ref = None
+
+        self.__process_ra_dec(ra, dec)
+        self.__process_ephemeris(ephemeris)
+        self.__process_parameters()
+
+        # Model light curve related
+        self.jds: np.ndarray = np.array([])
+        self.trajectory = np.array([])
+        self.magnification = np.array([])
+        self.model_flux = np.array([])
+        self.model_mag = np.array([])
+
+    def __process_ra_dec(self, ra, dec):
+        self.ra = ra
+        self.dec = dec
+        if self.ra is None or self.dec is None:
+            self.alpha = None
+            self.delta = None
+            return
+        else:
             ra_sep = np.array(ra.split(":")).astype(float)
             self.alpha = (ra_sep[0] + ra_sep[1] / 60.0 + ra_sep[2] / 3600.0) * 15.0
             dec_sep = np.array(dec.split(":")).astype(float)
@@ -55,60 +72,69 @@ class PointLensModel(object):
                 self.delta = dec_sep[0] - dec_sep[1] / 60.0 - dec_sep[2] / 3600.0
             else:
                 self.delta = dec_sep[0] + dec_sep[1] / 60.0 + dec_sep[2] / 3600.0
-            # Delta sun of the event
-            self.delta_sun: np.ndarray
-            if ephemeris is None:
-                self.ephemeris = None
-            else:
-                self.ephemeris = ephemeris.copy()
-                self.neg_delta_sate: np.ndarray
+        return
+
+    def __process_ephemeris(self, ephemeris):
+        if ephemeris is None:
+            self.ephemeris = None
+        else:
+            self.ephemeris = ephemeris.copy()
+
+    def __process_parameters(self):
+        """
+        Three main categories, parallax, xallarap, and static binary source.
+        The xallarap effect and the static binary source effect cannot be
+        enabled at the same time.
+        """
+        if "pi_E_N" in self.parameters and "pi_E_E" in self.parameters:
+            self.__process_parallax()
         if "p_xi" in self.parameters.keys():
-            if "e_xi" not in self.parameters.keys():
-                # circ means circular orbit
-                if (
-                    "i_xi" in self.parameters.keys()
-                    and "phi_xi" in self.parameters.keys()
-                ):
-                    self.parameter_set_enabled.append("xlrp_circ")
-                elif (
-                    "A_xi" in self.parameters.keys()
-                    and "B_xi" in self.parameters.keys()
-                    and "F_xi" in self.parameters.keys()
-                    and "G_xi" in self.parameters.keys()
-                ):
-                    if (
-                        "q_xi" in self.parameters.keys()
-                        or "eta" in self.parameters.keys()
-                    ):
-                        self.parameter_set_enabled.append("xlrp_circ_ti_2s")
-                    else:
-                        self.parameter_set_enabled.append("xlrp_circ_ti")
-            elif (
-                "i_xi" in self.parameters.keys()
-                and "Omega_xi" in self.parameters.keys()
-                and "omega_xi" in self.parameters.keys()
-            ):
-                # cpb means Compbell elements of elliptical orbit
-                self.parameter_set_enabled.append("xlrp_cpb")
+            self.__process_xallarap()
+
+    def __process_parallax(self):
+        self.parameter_set_enabled.append("prlx")
+        try:
+            self.t_0_par = self.parameters.pop("t_0_par")
+        except KeyError:
+            raise ValueError("t_0_par, required for parallax, is not defined.")
+        if self.ra is None or self.dec is None:
+            raise ValueError("ra and dec, required for parallax, are not defined.")
+
+    def __process_xallarap(self):
+        if "e_xi" not in self.parameters.keys():
+            if "i_xi" in self.parameters.keys() and "phi_xi" in self.parameters.keys():
+                self.parameter_set_enabled.append("xlrp_circ")
             elif (
                 "A_xi" in self.parameters.keys()
                 and "B_xi" in self.parameters.keys()
                 and "F_xi" in self.parameters.keys()
                 and "G_xi" in self.parameters.keys()
             ):
-                # ti means Thiele-Innes elements
-                self.parameter_set_enabled.append("xlrp_ti")
-            try:
-                self.t_ref = self.parameters.pop("t_ref")
-            except:
-                raise ValueError("t_ref, required for xallarap, is not defined.")
+                self.__process_xallarap_ti_or_ti_2s()
+        elif "e_xi" in self.parameters.keys():
+            self.__process_xallarap_cpb()
 
-        # Model light curve related
-        self.jds: np.ndarray
-        self.trajectory = np.array([])
-        self.magnification = np.array([])
-        self.model_flux = np.array([])
-        self.model_mag = np.array([])
+    def __process_xallarap_ti_or_ti_2s(self):
+        if "q_xi" in self.parameters.keys() or "eta" in self.parameters.keys():
+            self.parameter_set_enabled.append("xlrp_circ_ti_2s")
+        else:
+            self.parameter_set_enabled.append("xlrp_circ_ti")
+        self.__process_t_ref()
+
+    def __process_xallarap_cpb(self):
+        if (
+            "i_xi" in self.parameters.keys()
+            and "Omega_xi" in self.parameters.keys()
+            and "omega_xi" in self.parameters.keys()
+        ):
+            self.parameter_set_enabled.append("xlrp_cpb")
+        self.__process_t_ref()
+
+    def __process_t_ref(self):
+        try:
+            self.t_ref = self.parameters.pop("t_ref")
+        except KeyError:
+            raise ValueError("t_ref, required for xallarap, is not defined.")
 
     def __unit_E_N(self) -> tuple[np.ndarray, np.ndarray]:
         """Return the unit North and East Vector
