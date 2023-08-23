@@ -797,6 +797,21 @@ class PointLensModel(object):
 
         return self.magnification
 
+    def get_magnification_norm(self):
+        """
+        Get normalized magnification.
+        """
+        magnification_raw = self.get_magnification()
+        if "xlrp_circ_ti_2s" in self.parameter_set_enabled:
+            if self.obname is None:
+                qf_xi = self.parameters["qf_xi"]
+            else:
+                qf_xi = self.parameters[f"qf_{self.obname}"]
+            magnification_norm = magnification_raw / (1 + qf_xi)
+        else:
+            magnification_norm = magnification_raw.copy()
+        return magnification_norm
+
     def get_light_curve(self, fs, fb, return_type="mag", zero_point_mag=18.0):
         """
         Compute the light curve.
