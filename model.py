@@ -115,7 +115,7 @@ class PointLensModel(object):
             self.__process_xallarap_cpb()
 
     def __process_xallarap_ti_or_ti_2s(self):
-        if "q_xi" in self.parameters.keys() or "eta" in self.parameters.keys():
+        if "q_xi" in self.parameters.keys():
             self.parameter_set_enabled.append("xlrp_circ_ti_2s")
         else:
             self.parameter_set_enabled.append("xlrp_circ_ti")
@@ -756,15 +756,15 @@ class PointLensModel(object):
         B_xi = self.parameters["B_xi"]
         F_xi = self.parameters["F_xi"]
         G_xi = self.parameters["G_xi"]
-        if "eta" in self.parameters:
-            eta = self.parameters["eta"]
-            if self.obname is None:
-                qf_xi = self.parameters["qf_xi"]
-            else:
-                qf_xi = self.parameters[f"qf_{self.obname}"]
-            q_xi = (1+(1+eta)*qf_xi)/(eta-1-qf_xi)
-        elif "q_xi" in self.parameters:
-            q_xi = self.parameters["q_xi"]
+        #if "eta" in self.parameters:
+        #    eta = self.parameters["eta"]
+        #    if self.obname is None:
+        #        qf_xi = self.parameters["qf_xi"]
+        #    else:
+        #        qf_xi = self.parameters[f"qf_{self.obname}"]
+        #    q_xi = (1+(1+eta)*qf_xi)/(eta-1-qf_xi)
+        #elif "q_xi" in self.parameters:
+        q_xi = self.parameters["q_xi"]
 
         # Reason for how l is set here please refer to the previous function.
         l1_arr = 2 * np.pi * (self.jds - self.t_ref) / p_xi
