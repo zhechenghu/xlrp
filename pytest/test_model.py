@@ -63,3 +63,20 @@ def test_init_xlrp_model():
     ra = "18:04:21.29"
     model = PointLensModel(parameters, ra=ra, dec=dec)
     assert model.parameter_set_enabled == ["std", "prlx", "xlrp_circ_ti"]
+
+
+def test_init_xlrp_model():
+    parameters = {
+        "t_0": 2450000,
+        "u_0": 0.1,
+        "t_E": 10,
+        "pi_E_N": 0.1,
+        "pi_E_E": 0.1,
+        "t_0_2": 2450000,
+        "u_0_2": 0.05,
+        "t_0_par": 2450000.0,
+    }
+    dec = "-31:34:50.0"
+    ra = "18:04:21.29"
+    model = PointLensModel(parameters, ra=ra, dec=dec)
+    assert model.parameter_set_enabled == ["std", "prlx", "bins"]
