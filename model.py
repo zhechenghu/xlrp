@@ -103,6 +103,7 @@ class PointLensModel(object):
             raise ValueError("ra and dec, required for parallax, are not defined.")
 
     def __process_xallarap(self):
+        self.__process_t_ref()
         if "e_xi" not in self.parameters.keys():
             if "i_xi" in self.parameters.keys() and "phi_xi" in self.parameters.keys():
                 self.parameter_set_enabled.append("xlrp_circ")
@@ -121,7 +122,6 @@ class PointLensModel(object):
             self.parameter_set_enabled.append("xlrp_circ_ti_2s")
         else:
             self.parameter_set_enabled.append("xlrp_circ_ti")
-        self.__process_t_ref()
 
     def __process_xallarap_cpb(self):
         if (
@@ -130,7 +130,6 @@ class PointLensModel(object):
             and "omega_xi" in self.parameters.keys()
         ):
             self.parameter_set_enabled.append("xlrp_cpb")
-        self.__process_t_ref()
 
     def __process_t_ref(self):
         try:
