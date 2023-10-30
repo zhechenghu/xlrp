@@ -8,8 +8,8 @@ from emcee import EnsembleSampler
 import dynesty
 import dynesty.utils as dyfunc
 
-from config import WriteInfo, ReadInfo
-from param import WriteParam, ReadParam
+from xlrp.utils.config import WriteInfo, ReadInfo
+from xlrp.utils.param import WriteParam, ReadParam
 
 from xlrp import Event
 from xlrp import PointLensModel

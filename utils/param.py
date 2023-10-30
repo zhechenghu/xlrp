@@ -1,7 +1,7 @@
 import yaml
 from copy import deepcopy
 
-from config import ReadInfo
+from xlrp.utils.config import ReadInfo
 
 
 class ParamFile(object):
