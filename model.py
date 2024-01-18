@@ -54,6 +54,7 @@ class PointLensModel(object):
         self.jds: np.ndarray = np.array([])
         self.trajectory = np.array([])
         self.magnification = np.array([])
+        self.magnification_2s = np.array([])
         self.model_flux = np.array([])
         self.model_mag = np.array([])
 
@@ -707,6 +708,7 @@ class PointLensModel(object):
                 qf_xi = self.parameters["qf_xi"]
             else:
                 qf_xi = self.parameters[f"qf_{self.obname}"]
+            self.magnification_2s = np.array([magnification1, magnification2])
             self.magnification = (magnification1 + qf_xi * magnification2) / (1 + qf_xi)
         else:
             tau, beta = self.get_trajectory()
