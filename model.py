@@ -138,6 +138,10 @@ class PointLensModel(object):
         except KeyError:
             raise ValueError("t_ref, required for xallarap, is not defined.")
 
+    ################################
+    ######## Begin parallax ########
+    ################################
+
     def __unit_E_N(self) -> tuple[np.ndarray, np.ndarray]:
         """Return the unit North and East Vector
 
@@ -229,6 +233,28 @@ class PointLensModel(object):
         # fmt: on
         return np.array([np.array(neg_d_sat_n), np.array(neg_d_sat_e)]).T
 
+    def __get_delta_trajectory_annual_parallax(self):
+        pi_E_N, pi_E_E = self.parameters["pi_E_N"], self.parameters["pi_E_E"]
+        pi_E_vec = np.array([pi_E_N, pi_E_E])
+        delta_tau_prlx = np.dot(pi_E_vec, self.delta_sun.T)
+        delta_beta_prlx = np.cross(pi_E_vec, self.delta_sun)
+        return delta_tau_prlx, delta_beta_prlx
+
+    def __get_delta_trajectory_satellite_parallax(self):
+        pi_E_N, pi_E_E = self.parameters["pi_E_N"], self.parameters["pi_E_E"]
+        pi_E_vec = np.array([pi_E_N, pi_E_E])
+        tot_qn_qe = self.delta_sun + self.neg_delta_sate
+        delta_tau_prlx = np.dot(pi_E_vec, tot_qn_qe.T)
+        delta_beta_prlx = np.cross(pi_E_vec, tot_qn_qe)
+        return delta_tau_prlx, delta_beta_prlx
+
+    ##############################
+    ######## End parallax ########
+    ##############################
+
+    ##########################################
+    ######## Begin eccentric xallarap ########
+    ##########################################
     @staticmethod
     def __compute_eccentirc_anomaly(
         l: np.ndarray | float, e: float, l_ref: float = 0, max_iter=5
@@ -389,150 +415,6 @@ class PointLensModel(object):
         Thiele_Innes_mat = np.array([[A, F], [B, G]])
         return np.dot(Thiele_Innes_mat, pos_xy_vec)
 
-    def __get_trajectory_std(self):
-        """
-        This function compute the standard trajectory of the source in unit of theta_E.
-        """
-        t_0 = self.parameters["t_0"]
-        u_0 = self.parameters["u_0"]
-        t_E = self.parameters["t_E"]
-        tau, beta = (self.jds - t_0) / t_E, u_0 * np.ones(len(self.jds))
-        return tau, beta
-
-    def __get_trajectory_static_2s(self):
-        t_0 = self.parameters["t_0"]
-        u_0 = self.parameters["u_0"]
-        t_E = self.parameters["t_E"]
-        tau_1, beta_1 = (self.jds - t_0) / t_E, u_0 * np.ones(len(self.jds))
-        t_0_2 = self.parameters["t_0_2"]
-        u_0_2 = self.parameters["u_0_2"]
-        tau_2, beta_2 = (self.jds - t_0_2) / t_E, u_0_2 * np.ones(len(self.jds))
-        return tau_1, beta_1, tau_2, beta_2
-
-    def __get_delta_trajectory_annual_parallax(self):
-        pi_E_N, pi_E_E = self.parameters["pi_E_N"], self.parameters["pi_E_E"]
-        pi_E_vec = np.array([pi_E_N, pi_E_E])
-        delta_tau_prlx = np.dot(pi_E_vec, self.delta_sun.T)
-        delta_beta_prlx = np.cross(pi_E_vec, self.delta_sun)
-        return delta_tau_prlx, delta_beta_prlx
-
-    def __get_delta_trajectory_satellite_parallax(self):
-        pi_E_N, pi_E_E = self.parameters["pi_E_N"], self.parameters["pi_E_E"]
-        pi_E_vec = np.array([pi_E_N, pi_E_E])
-        tot_qn_qe = self.delta_sun + self.neg_delta_sate
-        delta_tau_prlx = np.dot(pi_E_vec, tot_qn_qe.T)
-        delta_beta_prlx = np.cross(pi_E_vec, tot_qn_qe)
-        return delta_tau_prlx, delta_beta_prlx
-
-    def __get_delta_trajectory_xallarap_circular(self):
-        """
-        Compute the xallarap trajectory.
-        """
-        # fmt: off
-        p_xi = self.parameters["p_xi"]  # Period of the binary
-        phi_xi = self.parameters["phi_xi"]  # Phase of the mean anomaly when t = t_ref
-        i = self.parameters["i_xi"]  # Inclination
-        xi_E_a, xi_E_b = self.parameters["xi_E_N"], self.parameters["xi_E_E"]
-        xi_E_vec = np.array([xi_E_a, xi_E_b])
-
-        # Notice that in circular orbit, the mean anomaly is the eccetirc anomaly 
-        # and is the true anomaly.
-        l_arr = 2 * np.pi * (self.jds - self.t_ref) / p_xi + phi_xi  # mean anomaly, set the reference time as t0
-        l_ref = phi_xi  # mean anomaly when t=t0
-
-        delta_xlrp_arr_x = -(np.cos(l_arr) - np.cos(l_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * (-np.sin(l_ref))
-        delta_xlrp_arr_y = -(np.sin(l_arr) - np.sin(l_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * np.cos(l_ref)
-        delta_xlrp_arr_z = 0 * l_arr
-        xlrp_arr_vec = np.array([delta_xlrp_arr_x, delta_xlrp_arr_y, delta_xlrp_arr_z])
-
-        rot_mat_x_i = np.array(
-            [
-                [1, 0, 0], 
-                [0, np.cos(i), -np.sin(i)], 
-                [0, np.sin(i), np.cos(i)]
-            ]
-        )
-        xlrp_arr_full = np.dot(rot_mat_x_i, xlrp_arr_vec)
-        xlrp_arr = np.array([xlrp_arr_full[0], xlrp_arr_full[1]]).T
-        # The z value, i.e. the position of the source in the direction of the sight, is useless
-
-        # Project the position to the (tau, beta) coordinate
-        delta_tau_xlrp_circ = np.dot(xi_E_vec, xlrp_arr.T)
-        delta_beta_xlrp_circ = np.cross(xi_E_vec, xlrp_arr)
-
-        # fmt: on
-        return delta_tau_xlrp_circ, delta_beta_xlrp_circ
-
-    def __get_delta_trajectory_xallarap_circular_thiele_innes(self):
-        """
-        Compute the circular xallarap trajectory using the Thiele-Innes elements.
-        """
-        # fmt: off
-        p_xi = self.parameters["p_xi"]
-        A_xi = self.parameters["A_xi"]
-        B_xi = self.parameters["B_xi"]
-        F_xi = self.parameters["F_xi"]
-        G_xi = self.parameters["G_xi"]
-
-        l_arr = 2 * np.pi * (self.jds - self.t_ref) / p_xi  # mean anomaly, set the reference time as t0
-        # Reason for l_ref is 0: here l_ref should be phi_xi,
-        # but phi_xi is already included in the Thiele-Innes elements.
-        l_ref = 0  # mean anomaly when t=t0.
-
-        delta_xlrp_arr_a = -(np.cos(l_arr) - np.cos(l_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * (-np.sin(l_ref))
-        delta_xlrp_arr_b = -(np.sin(l_arr) - np.sin(l_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * np.cos(l_ref)
-        
-        Thiele_Innes_mat = np.array(
-            [[A_xi, F_xi],
-            [B_xi, G_xi]]
-        )
-
-        delta_tau_beta_arr = np.dot(Thiele_Innes_mat, np.array([delta_xlrp_arr_a, delta_xlrp_arr_b]))
-
-        # fmt: on
-        return delta_tau_beta_arr[0], delta_tau_beta_arr[1]
-
-    def __get_delta_trajectory_xallarap_circular_thiele_innes_2s(self):
-        """
-        Compute the circular xallarap trajectory using the Thiele-Innes elements.
-        """
-        # fmt: off
-        p_xi = self.parameters["p_xi"]
-        A_xi = self.parameters["A_xi"]
-        B_xi = self.parameters["B_xi"]
-        F_xi = self.parameters["F_xi"]
-        G_xi = self.parameters["G_xi"]
-        q_xi = self.parameters["q_xi"]
-
-        # Reason for how l is set here please refer to the previous function.
-        l1_arr = 2 * np.pi * (self.jds - self.t_ref) / p_xi
-        l1_ref = 0
-        # Difference 1: is the l1_ref here is 0, while l2_ref should be pi.
-        l2_arr = l1_arr.copy() + np.pi
-        # Here the velocity is not subtracted, because here we consider the barycenter of the source binary
-        delta_xlrp_arr_1_a = -(np.cos(l1_arr) - np.cos(l1_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * (-np.sin(l1_ref))
-        delta_xlrp_arr_1_b = -(np.sin(l1_arr) - np.sin(l1_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * np.cos(l1_ref)
-        # Difference 2: here the semi-major axis is divided by the mass ratio
-        # The secondary source is less massive than the primary source,
-        # and q is always smaller than 1, so here should devide it to get a larger
-        # semi-major axis.
-        delta_xlrp_arr_2_a = -(1/q_xi*np.cos(l2_arr) - np.cos(l1_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * (-np.sin(l1_ref))
-        delta_xlrp_arr_2_b = -(1/q_xi*np.sin(l2_arr) - np.sin(l1_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * np.cos(l1_ref)
-        Thiele_Innes_mat = np.array(
-            [[A_xi, F_xi],
-            [B_xi, G_xi]]
-        )
-        delta_tau_beta_1_arr = np.dot(Thiele_Innes_mat, np.array([delta_xlrp_arr_1_a, delta_xlrp_arr_1_b]))
-        delta_tau_beta_2_arr = np.dot(Thiele_Innes_mat, np.array([delta_xlrp_arr_2_a, delta_xlrp_arr_2_b]))
-
-        # fmt: on
-        return (
-            delta_tau_beta_1_arr[0],
-            delta_tau_beta_1_arr[1],
-            delta_tau_beta_2_arr[0],
-            delta_tau_beta_2_arr[1],
-        )
-
     def __get_delta_trajectory_xallarap_campbell(self):
         """
         Compute the xallarap shift with campbell elements.
@@ -606,6 +488,152 @@ class PointLensModel(object):
             delta_tau_xlrp = delta_xlrp_arr_b
             delta_beta_xlrp = delta_xlrp_arr_a
         return delta_tau_xlrp, delta_beta_xlrp
+
+    ########################################
+    ######## End eccentric xallarap ########
+    ########################################
+
+    ########################################
+    ######## Begin circular xallarap #######
+    ########################################
+    def __get_s1s2_circ_delta_vec(self, phi_xi=0, return_z=False, return_source="s1"):
+        # fmt: off
+        # Notice that in circular orbit, the mean anomaly is the eccetirc anomaly 
+        # and is the true anomaly.
+        p_xi = self.parameters["p_xi"]  # Period of the binary
+        l_arr = 2 * np.pi * (self.jds - self.t_ref) / p_xi + phi_xi  # mean anomaly, set the reference time as t0
+        l_ref = phi_xi  # mean anomaly when t=t0
+
+        if return_source == "s1":
+            delta_xlrp_arr_x = -(np.cos(l_arr) - np.cos(l_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * (-np.sin(l_ref))
+            delta_xlrp_arr_y = -(np.sin(l_arr) - np.sin(l_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * np.cos(l_ref)
+            delta_xlrp_arr_z = 0 * l_arr
+            # fmt: on
+            if return_z:
+                return np.array([delta_xlrp_arr_x, delta_xlrp_arr_y, delta_xlrp_arr_z])
+            else:
+                return np.array([delta_xlrp_arr_x, delta_xlrp_arr_y])
+        else:
+            q_xi = self.parameters["q_xi"]
+            # Difference: here the semi-major axis is divided by the negative mass ratio
+            # The secondary source is less massive than the primary source,
+            # and q is always smaller than 1, so here should devide it to get a larger
+            # semi-major axis.
+            # the minus sign is because the position of the secondary is alway 
+            # opposite to the primary, i.e., on the other side of the baricenter.
+            delta_xlrp_arr_x = -(-1/q_xi*np.cos(l_arr) - np.cos(l_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * (-np.sin(l_ref))
+            delta_xlrp_arr_y = -(-1/q_xi*np.sin(l_arr) - np.sin(l_ref)) + (self.jds - self.t_ref) * 2*np.pi/p_xi * np.cos(l_ref)
+            delta_xlrp_arr_z = 0 * l_arr
+            # fmt: on
+            if return_z:
+                return np.array([delta_xlrp_arr_x, delta_xlrp_arr_y, delta_xlrp_arr_z])
+            else:
+                return np.array([delta_xlrp_arr_x, delta_xlrp_arr_y])
+
+    def __get_delta_trajectory_xallarap_circular(self):
+        """
+        Compute the xallarap trajectory.
+        """
+        # fmt: off
+        phi_xi = self.parameters["phi_xi"]  # Phase of the mean anomaly when t = t_ref
+        i = self.parameters["i_xi"]  # Inclination
+        xi_E_a, xi_E_b = self.parameters["xi_E_N"], self.parameters["xi_E_E"]
+        xi_E_vec = np.array([xi_E_a, xi_E_b])
+
+        s1_circ_delta_vec = self.__get_s1s2_circ_delta_vec(phi_xi=phi_xi, return_z=True)
+
+        rot_mat_x_i = np.array(
+            [
+                [1, 0, 0], 
+                [0, np.cos(i), -np.sin(i)], 
+                [0, np.sin(i), np.cos(i)]
+            ]
+        )
+        xlrp_arr_full = rot_mat_x_i @ s1_circ_delta_vec
+        xlrp_arr = np.array([xlrp_arr_full[0], xlrp_arr_full[1]]).T
+        # The z value, i.e. the position of the source in the direction of the sight, is useless
+
+        # Project the position to the (tau, beta) coordinate
+        delta_tau_xlrp_circ = np.dot(xi_E_vec, xlrp_arr.T)
+        delta_beta_xlrp_circ = np.cross(xi_E_vec, xlrp_arr)
+
+        # fmt: on
+        return delta_tau_xlrp_circ, delta_beta_xlrp_circ
+
+    def __get_delta_trajectory_xallarap_circular_thiele_innes(self):
+        """
+        Compute the circular xallarap trajectory using the Thiele-Innes elements.
+        """
+        # fmt: off
+        A_xi = self.parameters["A_xi"]
+        B_xi = self.parameters["B_xi"]
+        F_xi = self.parameters["F_xi"]
+        G_xi = self.parameters["G_xi"]
+
+        ## Reason for l_ref is 0: here l_ref should be phi_xi,
+        ## but phi_xi is already included in the Thiele-Innes elements.
+        s1_circ_delta_vec = self.__get_s1s2_circ_delta_vec(phi_xi=0, return_z=False)
+        
+        Thiele_Innes_mat = np.array(
+            [[A_xi, F_xi],
+            [B_xi, G_xi]]
+        )
+
+        delta_tau_beta_arr = np.dot(Thiele_Innes_mat, s1_circ_delta_vec)
+
+        # fmt: on
+        return delta_tau_beta_arr[0], delta_tau_beta_arr[1]
+
+    def __get_delta_trajectory_xallarap_circular_thiele_innes_2s(self):
+        """
+        Compute the circular xallarap trajectory using the Thiele-Innes elements.
+        """
+        # fmt: off
+        A_xi = self.parameters["A_xi"]
+        B_xi = self.parameters["B_xi"]
+        F_xi = self.parameters["F_xi"]
+        G_xi = self.parameters["G_xi"]
+
+        s1_circ_delta_vec = self.__get_s1s2_circ_delta_vec(phi_xi=0, return_z=False, return_source="s1")
+        s2_circ_delta_vec = self.__get_s1s2_circ_delta_vec(phi_xi=0, return_z=False, return_source="s2")
+        Thiele_Innes_mat = np.array(
+            [[A_xi, F_xi],
+            [B_xi, G_xi]]
+        )
+        delta_tau_beta_1_arr = np.dot(Thiele_Innes_mat, s1_circ_delta_vec)
+        delta_tau_beta_2_arr = np.dot(Thiele_Innes_mat, s2_circ_delta_vec)
+
+        # fmt: on
+        return (
+            delta_tau_beta_1_arr[0],
+            delta_tau_beta_1_arr[1],
+            delta_tau_beta_2_arr[0],
+            delta_tau_beta_2_arr[1],
+        )
+
+    ######################################
+    ######## End circular xallarap #######
+    ######################################
+
+    def __get_trajectory_std(self):
+        """
+        This function compute the standard trajectory of the source in unit of theta_E.
+        """
+        t_0 = self.parameters["t_0"]
+        u_0 = self.parameters["u_0"]
+        t_E = self.parameters["t_E"]
+        tau, beta = (self.jds - t_0) / t_E, u_0 * np.ones(len(self.jds))
+        return tau, beta
+
+    def __get_trajectory_static_2s(self):
+        t_0 = self.parameters["t_0"]
+        u_0 = self.parameters["u_0"]
+        t_E = self.parameters["t_E"]
+        tau_1, beta_1 = (self.jds - t_0) / t_E, u_0 * np.ones(len(self.jds))
+        t_0_2 = self.parameters["t_0_2"]
+        u_0_2 = self.parameters["u_0_2"]
+        tau_2, beta_2 = (self.jds - t_0_2) / t_E, u_0_2 * np.ones(len(self.jds))
+        return tau_1, beta_1, tau_2, beta_2
 
     def set_times(self, jds: np.ndarray):
         """
