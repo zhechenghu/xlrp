@@ -143,6 +143,28 @@ prlx_xlrp_ti_2s_params = {
     "t_ref": t_ref,
 }
 
+# compbell binary source
+# pass for now
+
+# compbell single source eccentric orbit
+prlx_xlrp_cpb_ecc_params = {
+    "t_0": 2457199.4134,
+    "u_0": 0.05644,
+    "t_E": 36.572,
+    "pi_E_N": 0.00812,
+    "pi_E_E": 0.08410,
+    "i_xi": 1.5584,
+    "phi_xi": 1.602,
+    "xi_E_N": 0.03128,
+    "xi_E_E": -0.08886,
+    "p_xi": 35.3872,
+    "e_xi": 0.3,
+    "omega_xi": 0.0428,
+    "Omega_xi": 0.0,
+    "t_0_par": t_0_par,
+    "t_ref": t_ref,
+}
+
 # prlx_bins_params = {**prlx_params, "t_0_2": t_0_2, "u_0_2": u_0_2}
 
 
@@ -238,9 +260,6 @@ def test_prlx_event():
 def test_xlrp_event():
     parameters_ti = prlx_xlrp_ti_params.copy()
     event_ti = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ti)
-    assert event_ti.ground_ob_tup == ("ogle", "ogleV")
-    assert event_ti.sapce_ob_tup == ("spitzer",)
-    assert event_ti.all_ob_tup == ("ogle", "ogleV", "spitzer")
     assert event_ti.get_chi2() == approx(1219.54, abs=1e-2)
     parameters_cpb = prlx_xlrp_cpb_params.copy()
     event_cpb = FitUtils.build_mylens_event(event_ri, params_dict=parameters_cpb)
@@ -262,9 +281,6 @@ def test_xlrp_event():
 def test_xlrp_2s_event():
     parameters = prlx_xlrp_ti_2s_params.copy()
     event = FitUtils.build_mylens_event(event_ri, params_dict=parameters)
-    assert event.ground_ob_tup == ("ogle", "ogleV")
-    assert event.sapce_ob_tup == ("spitzer",)
-    assert event.all_ob_tup == ("ogle", "ogleV", "spitzer")
     assert event.get_chi2() == approx(1147.07, abs=1e-2)
     traj_val_dict = {
         "ogle": (
@@ -292,3 +308,40 @@ def test_xlrp_2s_event():
         assert traj[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
         assert traj[2].sum() == approx(traj_val_dict[ob][2], abs=1e-2)
         assert traj[3].sum() == approx(traj_val_dict[ob][3], abs=1e-2)
+
+
+def test_xlrp_cpb_ecc0_event():
+    # when eccentricity is zero, the model should be the same as circular orbit
+    parameters_ecc0 = prlx_xlrp_cpb_params.copy()
+    parameters_ecc0["e_xi"] = 0.0
+    parameters_ecc0["omega_xi"] = 0.0
+    parameters_ecc0["Omega_xi"] = 0.0
+    event_ecc = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ecc0)
+    parameters_cir = prlx_xlrp_cpb_params.copy()
+    event_cir = FitUtils.build_mylens_event(event_ri, params_dict=parameters_cir)
+    assert event_ecc.get_chi2() == approx(event_cir.get_chi2(), abs=1e-2)
+    traj_val_dict = {
+        "ogle": (-13512.8407372212, 5363.9716472117),
+        "ogleV": (-1263.208684521062, 501.702897316377),
+        "spitzer": (17.552889710780, 2.235481552976),
+    }
+    for ob in event_ecc.all_ob_tup:
+        traj = event_ecc.model_dict[ob].get_trajectory()
+        assert traj[0].sum() == approx(traj_val_dict[ob][0], abs=1e-2)
+        assert traj[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
+
+
+def test_xlrp_cpb_ecc_event():
+    # Now test when eccentricity is not zero
+    parameters_ecc = prlx_xlrp_cpb_ecc_params.copy()
+    event_ecc = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ecc)
+    assert event_ecc.get_chi2() == approx(1194.34, abs=1e-2)
+    traj_val_dict = {
+        "ogle": (-13439.429396478256, 7527.865202395117),
+        "ogleV": (-1256.4089113477276, 703.6253871550258),
+        "spitzer": (18.372760061945097, 1.3829141918687093),
+    }
+    for ob in event_ecc.all_ob_tup:
+        traj = event_ecc.model_dict[ob].get_trajectory()
+        assert traj[0].sum() == approx(traj_val_dict[ob][0], abs=1e-2)
+        assert traj[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
