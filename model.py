@@ -116,9 +116,9 @@ class PointLensModel(object):
                 raise NotImplementedError(
                     "The circular xallarap effect with Campbell elements for the binary source is not implemented yet."
                 )
-                self.parameter_set_enabled.append("xlrp_circ_cpb_2s")
+                self.parameter_set_enabled.append("xlrp_circ_2s")
             else:
-                self.parameter_set_enabled.append("xlrp_circ_cpb")
+                self.parameter_set_enabled.append("xlrp_circ")
         elif (
             "A_xi" in self.parameters.keys()
             and "B_xi" in self.parameters.keys()
