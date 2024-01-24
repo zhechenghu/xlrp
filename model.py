@@ -415,13 +415,37 @@ class PointLensModel(object):
         Thiele_Innes_mat = np.array([[A, F], [B, G]])
         return np.dot(Thiele_Innes_mat, pos_xy_vec)
 
+    def __get_s1s2_ecc_delta_vec(self, phi_xi, return_z=False, return_source="s1"):
+        p = self.parameters["p_xi"]  # Period of the binary
+        e = self.parameters["e_xi"]  # Eccentricity
+
+        # fmt: off
+        l_arr = 2 * np.pi * (self.jds - self.t_ref) / p + phi_xi  # mean anomaly, set the reference time as t0
+        l_ref = phi_xi  # mean anomaly when t=t0
+        u_arr, u_ref = self.__compute_eccentirc_anomaly(l_arr, e, l_ref)
+        # Xallarap trajectory
+        xlrp_vec = self.__compute_position_in_orbital_plane(u_arr, e)
+        # Xallarap reference position
+        xlrp_ref_vec = self.__compute_position_in_orbital_plane(u_ref, e)
+        xlrp_ref_vec = np.outer(xlrp_ref_vec, np.ones(len(self.jds)))
+        # Xallarap reference velocity
+        xlrp_ref_v_vec = self.__compute_velocity_in_orbital_plane(u_ref, e, p)
+        if return_source == "s1":
+            delta_xlrp_arr = -(xlrp_vec - xlrp_ref_vec) + np.outer(xlrp_ref_v_vec, (self.jds - self.t_ref))
+            if return_z:
+                return delta_xlrp_arr
+        elif return_source == "s2":
+            q_xi = self.parameters["q_xi"]
+            delta_xlrp_arr = -(-1 / q_xi * xlrp_vec - xlrp_ref_vec) + np.outer(xlrp_ref_v_vec, (self.jds - self.t_ref))
+            if return_z:
+                return delta_xlrp_arr
+        # fmt: on
+
     def __get_delta_trajectory_xallarap_campbell(self):
         """
         Compute the xallarap shift with campbell elements.
         """
         # fmt: off
-        e = self.parameters["e_xi"]  # Eccentricity
-        p = self.parameters["p_xi"]  # Period of the binary
         phi = self.parameters["phi_xi"]  # Phase of the mean anomaly when t = t_ref
         inclination = self.parameters["i_xi"]  # Inclination
         omega = self.parameters["omega_xi"]  # Argument of periastron
@@ -429,24 +453,13 @@ class PointLensModel(object):
         xi_E_a, xi_E_b = self.parameters["xi_E_N"], self.parameters["xi_E_E"]
         xi_E_vec = np.array([xi_E_a, xi_E_b])
 
-        l_arr = 2 * np.pi * (self.jds - self.t_ref) / p + phi  # mean anomaly, set the reference time as t0
-        l_ref = phi  # mean anomaly when t=t0
-        u_arr, u_ref = self.__compute_eccentirc_anomaly(l_arr, e, l_ref)
-        # Xallarap trajectory
-        xlrp_nonrot_vec = self.__compute_position_in_orbital_plane(u_arr, e)
-        xlrp_vec = self.__rotate_orbit_campbell(xlrp_nonrot_vec, inclination, omega, Omega)
-        # Xallarap reference position
-        xlrp_ref_nonrot_vec = self.__compute_position_in_orbital_plane(u_ref, e)
-        xlrp_ref_vec = self.__rotate_orbit_campbell(xlrp_ref_nonrot_vec, inclination, omega, Omega)
-        # Xallarap reference velocity
-        xlrp_ref_v_nonrot_vec = self.__compute_velocity_in_orbital_plane(u_ref, e, p)
-        xlrp_ref_v_vec = self.__rotate_orbit_campbell(xlrp_ref_v_nonrot_vec, inclination, omega, Omega)
-
+        # first compute the position of the source in the orbital plane
+        delta_xlrp_nonrot_vec = self.__get_s1s2_ecc_delta_vec(phi_xi=phi, return_z=True)
+        # then rotate the position to the sky plane
+        delta_xlrp_vec = self.__rotate_orbit_campbell(delta_xlrp_nonrot_vec, inclination, omega, Omega)
         # Compute Delta N, Delta E
-        delta_xlrp_arr_a = -(xlrp_vec[0] - xlrp_ref_vec[0]) + (self.jds - self.t_ref) * xlrp_ref_v_vec[0]
-        delta_xlrp_arr_b = -(xlrp_vec[1] - xlrp_ref_vec[1]) + (self.jds - self.t_ref) * xlrp_ref_v_vec[1]
-        xlrp_arr = np.array([delta_xlrp_arr_a, delta_xlrp_arr_b]).T
         # The z value, i.e. the position of the source in the direction of the sight, is useless
+        xlrp_arr = np.array([delta_xlrp_vec[0], delta_xlrp_vec[1]]).T
 
         # Project the position to the (tau, beta) coordinate
         delta_tau_xlrp_cpb = np.dot(xi_E_vec, xlrp_arr.T)
