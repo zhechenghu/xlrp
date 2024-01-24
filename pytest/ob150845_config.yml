@@ -1,0 +1,68 @@
+Control_Parameter:
+  dynesty_opt_dict:
+    bound: multi
+    nlive: 500
+    sample: rwalk
+  emcee_opt_dict:
+    nburn: 3000
+    nstep: 5000
+    nwalkers: 50
+  fitting_method: dynesty
+  t_range:
+    - 2456000
+    - 2457500
+  zero_blend:
+    ogle: false
+    ogleV: false
+    moa: false
+    danishV: false
+    danishZ: false
+    spitzer: false
+Data_File:
+  ogle: data/ob150845_lc/ob150845_ogle.dat
+  ogle_bad: data/ob150845_lc/ob150845_ogle_bad.dat
+  ogleV: data/ob150845_lc/ob150845_ogleV.dat
+  ogleV_bad: data/ob150845_lc/ob150845_ogleV_bad.dat
+  moa: data/ob150845_lc/moa.dat
+  moa_bad: data/ob150845_lc/moa_bad.dat
+  danishV: data/ob150845_lc/danishV.dat
+  danishV_bad: data/ob150845_lc/danishV_bad.dat
+  danishZ: data/ob150845_lc/danishZ.dat
+  danishZ_bad: data/ob150845_lc/danishZ_bad.dat
+  spitzer: data/ob150845_lc/spitzer.dat
+  spitzer_bad: data/ob150845_lc/spitzer_bad.dat
+  param_file: data/ob150845_lc/ob150845_param.yaml
+  event_dir: data/ob150845_lc
+Error_Rescaling:
+  errfac_ogle:
+    - 0.000
+    - 1.606
+  errfac_ogleV:
+    - 0.000
+    - 1.214
+  errfac_danishV:
+    - 0.000
+    - 1.64
+  errfac_danishZ:
+    - 0.000
+    - 1.64
+  errfac_moa:
+    - 0.000
+    - 1.385
+  errfac_spitzer:
+    - 0.000
+    - 2.009
+Event_Info:
+  bands: I
+  dec_j2000: "-31:34:50.0"
+  observatories:
+    - ogle
+    - ogleV
+    #- danishV
+    #- danishZ
+    #- moa
+    - spitzer
+  official_name: OGLE-2015-BLG-0845
+  ra_j2000: "18:04:21.29"
+  short_name: ob150845
+  star_name: NO-NAME
