@@ -106,31 +106,53 @@ class PointLensModel(object):
     def __process_xallarap(self):
         self.__process_t_ref()
         if "e_xi" not in self.parameters.keys():
-            if "i_xi" in self.parameters.keys() and "phi_xi" in self.parameters.keys():
-                self.parameter_set_enabled.append("xlrp_circ")
-            elif (
-                "A_xi" in self.parameters.keys()
-                and "B_xi" in self.parameters.keys()
-                and "F_xi" in self.parameters.keys()
-                and "G_xi" in self.parameters.keys()
-            ):
-                self.__process_xallarap_ti_or_ti_2s()
+            self.__process_circ_xallarap()
         elif "e_xi" in self.parameters.keys():
-            self.__process_xallarap_cpb()
+            self.__process_ecc_xallarap()
 
-    def __process_xallarap_ti_or_ti_2s(self):
-        if "q_xi" in self.parameters.keys():
-            self.parameter_set_enabled.append("xlrp_circ_ti_2s")
-        else:
-            self.parameter_set_enabled.append("xlrp_circ_ti")
+    def __process_circ_xallarap(self):
+        if "i_xi" in self.parameters.keys() and "phi_xi" in self.parameters.keys():
+            if "q_xi" in self.parameters.keys():
+                raise NotImplementedError(
+                    "The circular xallarap effect with Campbell elements for the binary source is not implemented yet."
+                )
+                self.parameter_set_enabled.append("xlrp_circ_cpb_2s")
+            else:
+                self.parameter_set_enabled.append("xlrp_circ_cpb")
+        elif (
+            "A_xi" in self.parameters.keys()
+            and "B_xi" in self.parameters.keys()
+            and "F_xi" in self.parameters.keys()
+            and "G_xi" in self.parameters.keys()
+        ):
+            if "q_xi" in self.parameters.keys():
+                self.parameter_set_enabled.append("xlrp_circ_ti_2s")
+            else:
+                self.parameter_set_enabled.append("xlrp_circ_ti")
 
-    def __process_xallarap_cpb(self):
+    def __process_ecc_xallarap(self):
         if (
             "i_xi" in self.parameters.keys()
             and "Omega_xi" in self.parameters.keys()
             and "omega_xi" in self.parameters.keys()
         ):
-            self.parameter_set_enabled.append("xlrp_cpb")
+            if "q_xi" in self.parameters.keys():
+                self.parameter_set_enabled.append("xlrp_cpb_2s")
+            else:
+                self.parameter_set_enabled.append("xlrp_cpb")
+        elif (
+            "A_xi" in self.parameters.keys()
+            and "B_xi" in self.parameters.keys()
+            and "F_xi" in self.parameters.keys()
+            and "G_xi" in self.parameters.keys()
+        ):
+            if "q_xi" in self.parameters.keys():
+                raise NotImplementedError(
+                    "The eccentric xallarap effect with Thiele-Innes elements for the binary source is not implemented yet."
+                )
+                self.parameter_set_enabled.append("xlrp_ti_2s")
+            else:
+                self.parameter_set_enabled.append("xlrp_ti")
 
     def __process_t_ref(self):
         try:
