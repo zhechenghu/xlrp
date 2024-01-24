@@ -113,9 +113,6 @@ class PointLensModel(object):
     def __process_circ_xallarap(self):
         if "i_xi" in self.parameters.keys() and "phi_xi" in self.parameters.keys():
             if "q_xi" in self.parameters.keys():
-                raise NotImplementedError(
-                    "The circular xallarap effect with Campbell elements for the binary source is not implemented yet."
-                )
                 self.parameter_set_enabled.append("xlrp_circ_2s")
             else:
                 self.parameter_set_enabled.append("xlrp_circ")
@@ -488,6 +485,36 @@ class PointLensModel(object):
         delta_beta_xlrp_cpb = np.cross(xi_E_vec, xlrp_arr)
         return delta_tau_xlrp_cpb, delta_beta_xlrp_cpb
 
+    def __get_delta_trajectory_xallarap_campbell_2s(self):
+        """
+        Compute the xallarap shift with campbell elements.
+        """
+        # fmt: off
+        phi = self.parameters["phi_xi"]  # Phase of the mean anomaly when t = t_ref
+        inclination = self.parameters["i_xi"]  # Inclination
+        omega = self.parameters["omega_xi"]  # Argument of periastron
+        Omega = self.parameters["Omega_xi"]  # Longitude of ascending node
+        xi_E_a, xi_E_b = self.parameters["xi_E_N"], self.parameters["xi_E_E"]
+        xi_E_vec = np.array([xi_E_a, xi_E_b])
+
+        # first compute the position of the source in the orbital plane
+        delta_xlrp_s1_nonrot_vec = self.__get_s1s2_ecc_delta_vec(phi_xi=phi, return_z=True)
+        # then rotate the position to the sky plane
+        delta_xlrp_s1_vec = self.__rotate_orbit_campbell(delta_xlrp_s1_nonrot_vec, inclination, omega, Omega)
+        # Compute Delta N, Delta E
+        # The z value, i.e. the position of the source in the direction of the sight, is useless
+        xlrp_s1_arr = np.array([delta_xlrp_s1_vec[0], delta_xlrp_s1_vec[1]]).T
+        # Project the position to the (tau, beta) coordinate
+        delta_tau_xlrp_s1_cpb = np.dot(xi_E_vec, xlrp_s1_arr.T)
+        delta_beta_xlrp_s1_cpb = np.cross(xi_E_vec, xlrp_s1_arr)
+
+        delta_xlrp_s2_nonrot_vec = self.__get_s1s2_ecc_delta_vec(phi_xi=phi, return_z=True, return_source="s2")
+        delta_xlrp_s2_vec = self.__rotate_orbit_campbell(delta_xlrp_s2_nonrot_vec, inclination, omega, Omega)
+        xlrp_s2_arr = np.array([delta_xlrp_s2_vec[0], delta_xlrp_s2_vec[1]]).T
+        delta_tau_xlrp_s2_cpb = np.dot(xi_E_vec, xlrp_s2_arr.T)
+        delta_beta_xlrp_s2_cpb = np.cross(xi_E_vec, xlrp_s2_arr)
+        return delta_tau_xlrp_s1_cpb, delta_beta_xlrp_s1_cpb, delta_tau_xlrp_s2_cpb, delta_beta_xlrp_s2_cpb
+
     def __get_delta_trajectory_xallarap_thiele_innes(self):
         """
         Compute the parallax shift with Thiele-Innes elements.
@@ -594,6 +621,47 @@ class PointLensModel(object):
 
         # fmt: on
         return delta_tau_xlrp_circ, delta_beta_xlrp_circ
+
+    def __get_delta_trajectory_xallarap_circular_2s(self):
+        """
+        Compute the xallarap trajectory.
+        """
+        # fmt: off
+        phi_xi = self.parameters["phi_xi"]  # Phase of the mean anomaly when t = t_ref
+        i = self.parameters["i_xi"]  # Inclination
+        xi_E_a, xi_E_b = self.parameters["xi_E_N"], self.parameters["xi_E_E"]
+        xi_E_vec = np.array([xi_E_a, xi_E_b])
+
+        s1_circ_delta_vec = self.__get_s1s2_circ_delta_vec(phi_xi=phi_xi, return_z=True)
+        s2_circ_delta_vec = self.__get_s1s2_circ_delta_vec(phi_xi=phi_xi, return_z=True, return_source="s2")
+
+        rot_mat_x_i = np.array(
+            [
+                [1, 0, 0], 
+                [0, np.cos(i), -np.sin(i)], 
+                [0, np.sin(i), np.cos(i)]
+            ]
+        )
+
+        xlrp_s1_arr_full = rot_mat_x_i @ s1_circ_delta_vec
+        xlrp_s1_arr = np.array([xlrp_s1_arr_full[0], xlrp_s1_arr_full[1]]).T
+        # The z value, i.e. the position of the source in the direction of the sight, is useless
+        # Project the position to the (tau, beta) coordinate
+        delta_tau_xlrp_s1_circ = np.dot(xi_E_vec, xlrp_s1_arr.T)
+        delta_beta_xlrp_s1_circ = np.cross(xi_E_vec, xlrp_s1_arr)
+        
+        xlrp_s2_arr_full = rot_mat_x_i @ s2_circ_delta_vec
+        xlrp_s2_arr = np.array([xlrp_s2_arr_full[0], xlrp_s2_arr_full[1]]).T
+        delta_tau_xlrp_s2_circ = np.dot(xi_E_vec, xlrp_s2_arr.T)
+        delta_beta_xlrp_s2_circ = np.cross(xi_E_vec, xlrp_s2_arr)
+
+        # fmt: on
+        return (
+            delta_tau_xlrp_s1_circ,
+            delta_beta_xlrp_s1_circ,
+            delta_tau_xlrp_s2_circ,
+            delta_beta_xlrp_s2_circ,
+        )
 
     def __get_delta_trajectory_xallarap_circular_thiele_innes(self):
         """
@@ -737,6 +805,30 @@ class PointLensModel(object):
             tau_2 = tau + delta_tau_xlrp_2
             beta_2 = beta + delta_beta_xlrp_2
             self.trajectory = np.array([tau_1, beta_1, tau_2, beta_2])
+        elif "xlrp_circ_2s" in self.parameter_set_enabled:
+            (
+                delta_tau_xlrp_1,
+                delta_beta_xlrp_1,
+                delta_tau_xlrp_2,
+                delta_beta_xlrp_2,
+            ) = self.__get_delta_trajectory_xallarap_circular_2s()
+            tau_1 = tau + delta_tau_xlrp_1
+            beta_1 = beta + delta_beta_xlrp_1
+            tau_2 = tau + delta_tau_xlrp_2
+            beta_2 = beta + delta_beta_xlrp_2
+            self.trajectory = np.array([tau_1, beta_1, tau_2, beta_2])
+        elif "xlrp_cpb_2s" in self.parameter_set_enabled:
+            (
+                delta_tau_xlrp_1,
+                delta_beta_xlrp_1,
+                delta_tau_xlrp_2,
+                delta_beta_xlrp_2,
+            ) = self.__get_delta_trajectory_xallarap_campbell_2s()
+            tau_1 = tau + delta_tau_xlrp_1
+            beta_1 = beta + delta_beta_xlrp_1
+            tau_2 = tau + delta_tau_xlrp_2
+            beta_2 = beta + delta_beta_xlrp_2
+            self.trajectory = np.array([tau_1, beta_1, tau_2, beta_2])
         elif "bins" in self.parameter_set_enabled:
             tau_1, beta_1, tau_2, beta_2 = self.__get_trajectory_static_2s()
             tau_1 += delta_tau_prlx
@@ -752,6 +844,8 @@ class PointLensModel(object):
         """
         if (
             "xlrp_circ_ti_2s" in self.parameter_set_enabled
+            or "xlrp_circ_2s" in self.parameter_set_enabled
+            or "xlrp_cpb_2s" in self.parameter_set_enabled
             or "bins" in self.parameter_set_enabled
         ):
             tau1, beta1, tau2, beta2 = self.get_trajectory()

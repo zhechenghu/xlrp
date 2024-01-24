@@ -81,8 +81,9 @@ prlx_params = {
 
 # xallarap paramters
 t_ref = 2457200
+# circular orbit
 # Thiele-Innes only
-prlx_xlrp_ti_params = {
+prlx_xlrp_circ_ti_params = {
     "t_0": 2457199.3855,
     "u_0": 0.0500,
     "t_E": 42.0,
@@ -96,35 +97,8 @@ prlx_xlrp_ti_params = {
     "t_0_par": t_0_par,
     "t_ref": t_ref,
 }
-
-# campbell only
-_phi_xi, _theta_xi, _i_xi, _a_xi = Ut.compute_campbell(
-    prlx_xlrp_ti_params["A_xi"],
-    prlx_xlrp_ti_params["B_xi"],
-    prlx_xlrp_ti_params["F_xi"],
-    prlx_xlrp_ti_params["G_xi"],
-)
-_xi_E_N = _a_xi * np.cos(_theta_xi)
-_xi_E_E = _a_xi * np.sin(_theta_xi)
-prlx_xlrp_cpb_params = {
-    "t_0": prlx_xlrp_ti_params["t_0"],
-    "u_0": prlx_xlrp_ti_params["u_0"],
-    "t_E": prlx_xlrp_ti_params["t_E"],
-    "pi_E_N": prlx_xlrp_ti_params["pi_E_N"],
-    "pi_E_E": prlx_xlrp_ti_params["pi_E_E"],
-    "xi_E_N": _xi_E_N,
-    "xi_E_E": _xi_E_E,
-    "i_xi": _i_xi,
-    "phi_xi": _phi_xi,
-    "p_xi": prlx_xlrp_ti_params["p_xi"],
-    "t_0_par": t_0_par,
-    "t_ref": t_ref,
-}
-
 # Thiele-Innes binary source
-q_xi = 0.4
-qf_ogle = 0.4**3.5
-prlx_xlrp_ti_2s_params = {
+prlx_xlrp_circ_ti_2s_params = {
     "t_0": 2457199.284,
     "u_0": 0.0484,
     "t_E": 46.8,
@@ -143,11 +117,61 @@ prlx_xlrp_ti_2s_params = {
     "t_ref": t_ref,
 }
 
-# compbell binary source
-# pass for now
+# campbell only
+_phi_xi, _theta_xi, _i_xi, _a_xi = Ut.compute_campbell(
+    prlx_xlrp_circ_ti_params["A_xi"],
+    prlx_xlrp_circ_ti_params["B_xi"],
+    prlx_xlrp_circ_ti_params["F_xi"],
+    prlx_xlrp_circ_ti_params["G_xi"],
+)
+_xi_E_N = _a_xi * np.cos(_theta_xi)
+_xi_E_E = _a_xi * np.sin(_theta_xi)
+prlx_xlrp_circ_cpb_params = {
+    "t_0": prlx_xlrp_circ_ti_params["t_0"],
+    "u_0": prlx_xlrp_circ_ti_params["u_0"],
+    "t_E": prlx_xlrp_circ_ti_params["t_E"],
+    "pi_E_N": prlx_xlrp_circ_ti_params["pi_E_N"],
+    "pi_E_E": prlx_xlrp_circ_ti_params["pi_E_E"],
+    "xi_E_N": _xi_E_N,
+    "xi_E_E": _xi_E_E,
+    "i_xi": _i_xi,
+    "phi_xi": _phi_xi,
+    "p_xi": prlx_xlrp_circ_ti_params["p_xi"],
+    "t_0_par": t_0_par,
+    "t_ref": t_ref,
+}
+# Campbell binary source
+_phi_xi, _theta_xi, _i_xi, _a_xi = Ut.compute_campbell(
+    prlx_xlrp_circ_ti_2s_params["A_xi"],
+    prlx_xlrp_circ_ti_2s_params["B_xi"],
+    prlx_xlrp_circ_ti_2s_params["F_xi"],
+    prlx_xlrp_circ_ti_2s_params["G_xi"],
+)
+_xi_E_N = _a_xi * np.cos(_theta_xi)
+_xi_E_E = _a_xi * np.sin(_theta_xi)
+prlx_xlrp_circ_cpb_2s_params = {
+    "t_0": prlx_xlrp_circ_ti_2s_params["t_0"],
+    "u_0": prlx_xlrp_circ_ti_2s_params["u_0"],
+    "t_E": prlx_xlrp_circ_ti_2s_params["t_E"],
+    "pi_E_N": prlx_xlrp_circ_ti_2s_params["pi_E_N"],
+    "pi_E_E": prlx_xlrp_circ_ti_2s_params["pi_E_E"],
+    "xi_E_N": _xi_E_N,
+    "xi_E_E": _xi_E_E,
+    "i_xi": _i_xi,
+    "phi_xi": _phi_xi,
+    "p_xi": prlx_xlrp_circ_ti_2s_params["p_xi"],
+    "q_xi": prlx_xlrp_circ_ti_2s_params["q_xi"],
+    "qf_ogle": prlx_xlrp_circ_ti_2s_params["qf_ogle"],
+    "qf_ogleV": prlx_xlrp_circ_ti_2s_params["qf_ogleV"],
+    "qf_spitzer": prlx_xlrp_circ_ti_2s_params["qf_spitzer"],
+    "t_0_par": t_0_par,
+    "t_ref": t_ref,
+}
 
-# compbell single source eccentric orbit
-prlx_xlrp_cpb_ecc_params = {
+
+# eccentric orbit
+# compbell single source
+prlx_xlrp_ecc_cpb_params = {
     "t_0": 2457199.4134,
     "u_0": 0.05644,
     "t_E": 36.572,
@@ -161,6 +185,30 @@ prlx_xlrp_cpb_ecc_params = {
     "e_xi": 0.3,
     "omega_xi": 0.0428,
     "Omega_xi": 0.0,
+    "t_0_par": t_0_par,
+    "t_ref": t_ref,
+}
+# Thiele-Innes single source
+# pass for now
+# compbell binary source
+prlx_xlrp_ecc_cpb_2s_params = {
+    "t_0": 2457199.4134,
+    "u_0": 0.05644,
+    "t_E": 36.572,
+    "pi_E_N": 0.00812,
+    "pi_E_E": 0.08410,
+    "i_xi": 1.5584,
+    "phi_xi": 1.602,
+    "xi_E_N": 0.03128,
+    "xi_E_E": -0.08886,
+    "p_xi": 35.3872,
+    "e_xi": 0.3,
+    "omega_xi": 0.0428,
+    "Omega_xi": 0.0,
+    "q_xi": 0.299,
+    "qf_ogle": 0.094,
+    "qf_ogleV": 0.107,
+    "qf_spitzer": 0.92,
     "t_0_par": t_0_par,
     "t_ref": t_ref,
 }
@@ -201,23 +249,29 @@ def test_init_prlx_model():
     assert model.delta == approx(-31.5805556)
 
 
-def test_init_xlrp_cpb_model():
-    parameters = prlx_xlrp_cpb_params.copy()
+def test_init_xlrp_cir_cpb_model():
+    parameters = prlx_xlrp_circ_cpb_params.copy()
     model = PointLensModel(parameters, ra=ra, dec=dec, obname="ogle")
     assert model.parameter_set_enabled == ["std", "prlx", "xlrp_circ"]
     assert model.t_ref == 2457200
 
 
-def test_init_xlrp_ti_model():
-    parameters = prlx_xlrp_ti_params.copy()
+def test_init_xlrp_cir_ti_model():
+    parameters = prlx_xlrp_circ_ti_params.copy()
     model = PointLensModel(parameters, ra=ra, dec=dec, obname="ogle")
     assert model.parameter_set_enabled == ["std", "prlx", "xlrp_circ_ti"]
 
 
-def test_init_xlrp_ti2s_model():
-    parameters = prlx_xlrp_ti_2s_params.copy()
+def test_init_xlrp_cir_ti_2s_model():
+    parameters = prlx_xlrp_circ_ti_2s_params.copy()
     model = PointLensModel(parameters, ra=ra, dec=dec, obname="ogle")
     assert model.parameter_set_enabled == ["std", "prlx", "xlrp_circ_ti_2s"]
+
+
+def test_init_xlrp_cpb_2s_model():
+    parameters = prlx_xlrp_ecc_cpb_2s_params.copy()
+    model = PointLensModel(parameters, ra=ra, dec=dec, obname="ogle")
+    assert model.parameter_set_enabled == ["std", "prlx", "xlrp_cpb_2s"]
 
 
 # def test_init_prlx_bins_model():
@@ -258,10 +312,10 @@ def test_prlx_event():
 
 
 def test_xlrp_event():
-    parameters_ti = prlx_xlrp_ti_params.copy()
+    parameters_ti = prlx_xlrp_circ_ti_params.copy()
     event_ti = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ti)
     assert event_ti.get_chi2() == approx(1219.54, abs=1e-2)
-    parameters_cpb = prlx_xlrp_cpb_params.copy()
+    parameters_cpb = prlx_xlrp_circ_cpb_params.copy()
     event_cpb = FitUtils.build_mylens_event(event_ri, params_dict=parameters_cpb)
     assert event_cpb.get_chi2() == approx(event_ti.get_chi2(), abs=1e-5)
     traj_val_dict = {
@@ -278,10 +332,14 @@ def test_xlrp_event():
         assert traj_cpb[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
 
 
-def test_xlrp_2s_event():
-    parameters = prlx_xlrp_ti_2s_params.copy()
-    event = FitUtils.build_mylens_event(event_ri, params_dict=parameters)
-    assert event.get_chi2() == approx(1147.07, abs=1e-2)
+def test_xlrp_circ_2s_event():
+    parameters_ti = prlx_xlrp_circ_ti_2s_params.copy()
+    event_ti = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ti)
+    assert event_ti.get_chi2() == approx(1147.07, abs=1e-2)
+    params_cpb = prlx_xlrp_circ_cpb_2s_params.copy()
+    event_cpb = FitUtils.build_mylens_event(event_ri, params_dict=params_cpb)
+    assert event_cpb.get_chi2() == approx(event_ti.get_chi2(), abs=1e-5)
+
     traj_val_dict = {
         "ogle": (
             -13881.225026150,
@@ -302,22 +360,27 @@ def test_xlrp_2s_event():
             83.67394585962177,
         ),
     }
-    for ob in event.all_ob_tup:
-        traj = event.model_dict[ob].get_trajectory()
-        assert traj[0].sum() == approx(traj_val_dict[ob][0], abs=1e-2)
-        assert traj[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
-        assert traj[2].sum() == approx(traj_val_dict[ob][2], abs=1e-2)
-        assert traj[3].sum() == approx(traj_val_dict[ob][3], abs=1e-2)
+    for ob in event_ti.all_ob_tup:
+        traj_ti = event_ti.model_dict[ob].get_trajectory()
+        assert traj_ti[0].sum() == approx(traj_val_dict[ob][0], abs=1e-2)
+        assert traj_ti[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
+        assert traj_ti[2].sum() == approx(traj_val_dict[ob][2], abs=1e-2)
+        assert traj_ti[3].sum() == approx(traj_val_dict[ob][3], abs=1e-2)
+        traj_cpb = event_cpb.model_dict[ob].get_trajectory()
+        assert traj_cpb[0].sum() == approx(traj_val_dict[ob][0], abs=1e-2)
+        assert traj_cpb[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
+        assert traj_cpb[2].sum() == approx(traj_val_dict[ob][2], abs=1e-2)
+        assert traj_cpb[3].sum() == approx(traj_val_dict[ob][3], abs=1e-2)
 
 
-def test_xlrp_cpb_ecc0_event():
+def test_xlrp_ecc0_cpb_event():
     # when eccentricity is zero, the model should be the same as circular orbit
-    parameters_ecc0 = prlx_xlrp_cpb_params.copy()
+    parameters_ecc0 = prlx_xlrp_circ_cpb_params.copy()
     parameters_ecc0["e_xi"] = 0.0
     parameters_ecc0["omega_xi"] = 0.0
     parameters_ecc0["Omega_xi"] = 0.0
     event_ecc = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ecc0)
-    parameters_cir = prlx_xlrp_cpb_params.copy()
+    parameters_cir = prlx_xlrp_circ_cpb_params.copy()
     event_cir = FitUtils.build_mylens_event(event_ri, params_dict=parameters_cir)
     assert event_ecc.get_chi2() == approx(event_cir.get_chi2(), abs=1e-2)
     traj_val_dict = {
@@ -331,9 +394,9 @@ def test_xlrp_cpb_ecc0_event():
         assert traj[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
 
 
-def test_xlrp_cpb_ecc_event():
+def test_xlrp_ecc_cpb_event():
     # Now test when eccentricity is not zero
-    parameters_ecc = prlx_xlrp_cpb_ecc_params.copy()
+    parameters_ecc = prlx_xlrp_ecc_cpb_params.copy()
     event_ecc = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ecc)
     assert event_ecc.get_chi2() == approx(1194.34, abs=1e-2)
     traj_val_dict = {
@@ -345,3 +408,40 @@ def test_xlrp_cpb_ecc_event():
         traj = event_ecc.model_dict[ob].get_trajectory()
         assert traj[0].sum() == approx(traj_val_dict[ob][0], abs=1e-2)
         assert traj[1].sum() == approx(traj_val_dict[ob][1], abs=1e-2)
+
+
+def test_xlrp_ecc0_2s_event():
+    # when eccentricity is zero, the model should be the same as circular orbit
+    # with binary source
+    parameters_ecc0 = prlx_xlrp_circ_cpb_2s_params.copy()
+    parameters_ecc0["e_xi"] = 0.0
+    parameters_ecc0["omega_xi"] = 0.0
+    parameters_ecc0["Omega_xi"] = 0.0
+    event_ecc = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ecc0)
+    parameters_cir = prlx_xlrp_circ_cpb_2s_params.copy()
+    event_cir = FitUtils.build_mylens_event(event_ri, params_dict=parameters_cir)
+    assert event_ecc.get_chi2() == approx(event_cir.get_chi2(), abs=1e-2)
+    for ob in event_ecc.all_ob_tup:
+        traj_ecc0 = event_ecc.model_dict[ob].get_trajectory()
+        traj_cir = event_cir.model_dict[ob].get_trajectory()
+        assert traj_ecc0[0].sum() == approx(traj_cir[0].sum(), abs=1e-2)
+        assert traj_ecc0[1].sum() == approx(traj_cir[1].sum(), abs=1e-2)
+        assert traj_ecc0[2].sum() == approx(traj_cir[2].sum(), abs=1e-2)
+        assert traj_ecc0[3].sum() == approx(traj_cir[3].sum(), abs=1e-2)
+
+    # when the secondaries are not luminous, the model should be the same as
+    # eccentric orbit with a single xallarap source
+    parameters_dark = prlx_xlrp_ecc_cpb_params.copy()
+    parameters_dark["q_xi"] = 0.299
+    parameters_dark["qf_ogle"] = 0.0
+    parameters_dark["qf_ogleV"] = 0.0
+    parameters_dark["qf_spitzer"] = 0.0
+    event_dark = FitUtils.build_mylens_event(event_ri, params_dict=parameters_dark)
+    parameters_ecc_s1 = prlx_xlrp_ecc_cpb_params.copy()
+    event_ecc_s1 = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ecc_s1)
+    assert event_dark.get_chi2() == approx(event_ecc_s1.get_chi2(), abs=1e-2)
+    for ob in event_dark.all_ob_tup:
+        traj_dark = event_dark.model_dict[ob].get_trajectory()
+        traj_ecc_s1 = event_ecc_s1.model_dict[ob].get_trajectory()
+        assert traj_dark[0].sum() == approx(traj_ecc_s1[0].sum(), abs=1e-2)
+        assert traj_dark[1].sum() == approx(traj_ecc_s1[1].sum(), abs=1e-2)
