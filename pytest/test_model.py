@@ -333,6 +333,15 @@ def test_xlrp_event():
 
 
 def test_xlrp_circ_2s_event():
+    # first test when the secondaries are un luminous
+    parameters_2s0_ti = prlx_xlrp_circ_ti_params.copy()
+    parameters_2s0_ti["q_xi"] = 0.299
+    parameters_2s0_ti["qf_ogle"] = 0.0
+    parameters_2s0_ti["qf_ogleV"] = 0.0
+    parameters_2s0_ti["qf_spitzer"] = 0.0
+    event_2s0_ti = FitUtils.build_mylens_event(event_ri, params_dict=parameters_2s0_ti)
+    assert event_2s0_ti.get_chi2() == approx(1219.54, abs=1e-2)
+
     parameters_ti = prlx_xlrp_circ_ti_2s_params.copy()
     event_ti = FitUtils.build_mylens_event(event_ri, params_dict=parameters_ti)
     assert event_ti.get_chi2() == approx(1147.07, abs=1e-2)
