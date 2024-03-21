@@ -350,8 +350,12 @@ class FitUtils:
         -------
             An Event object.
         """
-        # TODO: This should check all data files exist
-        if os.path.exists(event_ri.get_bad_path()):
+        bad_dict = event_ri.get_bad_path_dict()
+        have_bad = False
+        for bad_file in bad_dict.values():
+            if os.path.exists(bad_file):
+                have_bad = True
+        if have_bad:
             my_data = Data(
                 errfac_dict=event_ri.get_errfac_dict(),
                 data_file_dict=event_ri.get_data_path_dict(),
