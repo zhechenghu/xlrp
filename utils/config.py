@@ -1,5 +1,6 @@
 import yaml
 import os
+import numpy as np
 
 
 class ConfigFile(object):
@@ -46,6 +47,9 @@ class ReadInfo(ConfigFile):
     def get_data_path(self, observatory="ogle"):
         return self.event_info["Data_File"][observatory]
 
+    def get_bad_path(self, observatory="ogle"):
+        return self.event_info["Data_File"][f"{observatory}_bad"]
+
     def get_data_path_dict(self):
         data_path_dict = {}
         for observatory in self.get_observatories():
@@ -53,10 +57,7 @@ class ReadInfo(ConfigFile):
         return data_path_dict
 
     def get_param_path(self):
-        return self.event_info["Data_File"]["param_file"]
-
-    def get_bad_path(self, observatory="ogle"):
-        return self.event_info["Data_File"][f"{observatory}_bad"]
+        return self.event_info["Result_File"]["param_file"]
 
     def get_bad_path_dict(self):
         bad_path_dict = {}
@@ -66,9 +67,9 @@ class ReadInfo(ConfigFile):
 
     def get_emcee_path(self, neg_u0=False):
         if neg_u0:
-            return self.event_info["Data_File"]["mcmc_neg_chain"]
+            return self.event_info["Result_File"]["mcmc_neg_chain"]
         else:
-            return self.event_info["Data_File"]["mcmc_pos_chain"]
+            return self.event_info["Result_File"]["mcmc_pos_chain"]
 
     def get_dynesty_result(self, neg_u0=False):
         # TODO: check where this function has been used
@@ -127,13 +128,13 @@ class WriteInfo(ConfigFile):
             'pos' or 'neg', the sign of u0.
         """
         u0_sign = "neg" if neg_u0 else "pos"
-        self.event_info["Data_File"][f"mcmc_{u0_sign}_chain"] = mcmc_chain_path
+        self.event_info["Result_File"][f"mcmc_{u0_sign}_chain"] = mcmc_chain_path
         self.save_yaml()
 
     def set_dynesty_result_path(self, dynesty_result_path: str, neg_u0: bool):
         # TODO: check where this function has been used
         u0_sign = "neg" if neg_u0 else "pos"
-        self.event_info["Data_File"][f"dynesty_{u0_sign}_result"] = dynesty_result_path
+        self.event_info["Result_File"][f"dynesty_{u0_sign}_result"] = dynesty_result_path
         self.save_yaml()
 
     def reset_control_params(self):
@@ -204,6 +205,23 @@ class WriteInfo(ConfigFile):
         self.save_yaml()
 
 
+def init_datafile_dict(data_dir, ob_id_list):
+    def datafile_item(data_dir, file_id):
+        file_list = os.listdir(data_dir)
+        target_file_list = [file_name for file_name in file_list if file_id in file_name]
+        if len(target_file_list) == 0:
+            raise ValueError(f"No file found with id {file_id} in {data_dir}")
+        elif len(target_file_list) > 1:
+            raise ValueError(f"Multiple files found with id {file_id} in {data_dir}")
+        return os.path.join(data_dir, target_file_list[0])
+    return {file_id: datafile_item(data_dir, file_id) for file_id in ob_id_list}
+
+def init_bad_datafile_dict(datafile_dict):
+    return {k+"_bad": v+".bad" for k, v in datafile_dict.items()}
+
+def init_errfac_dict(ob_id_list):
+    return {"errfac_"+observatory: [0.003, 1.0] for observatory in ob_id_list}
+
 def init_cfg_file(
     star_name: str,
     event_name: str,
@@ -211,6 +229,7 @@ def init_cfg_file(
     event_ra: str,
     event_dec: str,
     event_dir: str,
+    ob_id_list: list,
 ):
     """It initializes a config file from given parameters
 
@@ -237,17 +256,12 @@ def init_cfg_file(
             "star_name": None,
             "ra_j2000": None,
             "dec_j2000": None,
-            "observatories": ["ogle"],
+            "observatories": ob_id_list,
             "bands": "I",
         },
-        "Data_File": {
-            "ogle": None,
-            "ogle_bad": None,
-            "mcmc_neg_chain": None,
-            "mcmc_pos_chain": None,
-            "dynesty_pos_result": None,
-            "dynesty_neg_result": None,
-            "param_file": None,
+        "Data_File": {},
+        "Result_File": {
+            "param_file": os.path.join(event_dir, f"{event_name}_param.yaml"),
         },
         "Control_Parameter": {
             "zero_blend": False,
@@ -256,9 +270,7 @@ def init_cfg_file(
             "emcee_opt_dict": {"nwalkers": 30, "nstep": 1000, "nburn": 1000},
             "dynesty_opt_dict": {"nlive": 500, "bound": "multi", "sample": "rwalk"},
         },
-        "Error_Rescaling": {
-            "errfac_ogle": [0.003, 1.0]
-        },  # In general, it is [0.003, 1.0]
+        "Error_Rescaling": {},  # In general, it is [0.003, 1.0]
     }
 
     event_info["Event_Info"]["official_name"] = official_name
@@ -266,25 +278,11 @@ def init_cfg_file(
     event_info["Event_Info"]["star_name"] = star_name
     event_info["Event_Info"]["ra_j2000"] = event_ra
     event_info["Event_Info"]["dec_j2000"] = event_dec
-    event_info["Data_File"]["ogle"] = os.path.join(event_dir, f"{event_name}.dat")
-    event_info["Data_File"]["ogle_bad"] = os.path.join(
-        event_dir, f"{event_name}_bad.dat"
-    )
-    event_info["Data_File"]["mcmc_neg_chain"] = os.path.join(
-        event_dir, f"{event_name}_mcmc_neg_chain.dat"
-    )
-    event_info["Data_File"]["mcmc_pos_chain"] = os.path.join(
-        event_dir, f"{event_name}_mcmc_pos_chain.dat"
-    )
-    event_info["Data_File"]["dynesty_neg_result"] = os.path.join(
-        event_dir, f"{event_name}_dynesty_neg_result.pkl"
-    )
-    event_info["Data_File"]["dynesty_pos_result"] = os.path.join(
-        event_dir, f"{event_name}_dynesty_pos_result.pkl"
-    )
-    event_info["Data_File"]["param_file"] = os.path.join(
-        event_dir, f"{event_name}_param.yaml"
-    )
+
+    data_dict = init_datafile_dict(event_dir, ob_id_list)
+    bad_dict = init_bad_datafile_dict(data_dict)
+    event_info["Data_File"] = {**data_dict, **bad_dict}
+    event_info["Error_Rescaling"] = init_errfac_dict(ob_id_list)
 
     event_config_path = os.path.join(event_dir, f"{event_name}_config.yml")
     with open(event_config_path, "w", encoding="utf-8") as f:
