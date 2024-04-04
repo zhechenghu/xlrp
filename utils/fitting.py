@@ -273,8 +273,12 @@ class FitUtils:
         neg_u0_2: bool = False,
         free_u0_2: bool = False,
     ):
-        jd_start = t_range[0]
-        jd_end = t_range[1]
+        try:
+            jd_start = t_range[0]
+            jd_end = t_range[1]
+        except TypeError:
+            jd_start = 2450000  # corresponds to 1968-05-23
+            jd_end = 2490000  # corresponds to 2105
         default_params_scale_loc_dict = {
             "t_0": {"scale": jd_end - jd_start, "loc": jd_start},
             "t_0_2": {"scale": jd_end - jd_start, "loc": jd_start},
