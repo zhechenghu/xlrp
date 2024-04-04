@@ -134,7 +134,9 @@ class WriteInfo(ConfigFile):
     def set_dynesty_result_path(self, dynesty_result_path: str, neg_u0: bool):
         # TODO: check where this function has been used
         u0_sign = "neg" if neg_u0 else "pos"
-        self.event_info["Result_File"][f"dynesty_{u0_sign}_result"] = dynesty_result_path
+        self.event_info["Result_File"][
+            f"dynesty_{u0_sign}_result"
+        ] = dynesty_result_path
         self.save_yaml()
 
     def reset_control_params(self):
@@ -208,19 +210,25 @@ class WriteInfo(ConfigFile):
 def init_datafile_dict(data_dir, ob_id_list):
     def datafile_item(data_dir, file_id):
         file_list = os.listdir(data_dir)
-        target_file_list = [file_name for file_name in file_list if file_id in file_name]
+        target_file_list = [
+            file_name for file_name in file_list if file_id in file_name
+        ]
         if len(target_file_list) == 0:
             raise ValueError(f"No file found with id {file_id} in {data_dir}")
         elif len(target_file_list) > 1:
             raise ValueError(f"Multiple files found with id {file_id} in {data_dir}")
         return os.path.join(data_dir, target_file_list[0])
+
     return {file_id: datafile_item(data_dir, file_id) for file_id in ob_id_list}
 
+
 def init_bad_datafile_dict(datafile_dict):
-    return {k+"_bad": v+".bad" for k, v in datafile_dict.items()}
+    return {k + "_bad": v + ".bad" for k, v in datafile_dict.items()}
+
 
 def init_errfac_dict(ob_id_list):
-    return {"errfac_"+observatory: [0.003, 1.0] for observatory in ob_id_list}
+    return {"errfac_" + observatory: [0.003, 1.0] for observatory in ob_id_list}
+
 
 def init_cfg_file(
     star_name: str,
