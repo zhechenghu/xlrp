@@ -445,7 +445,10 @@ class FitUtils:
         return_chain: bool = False,
         print_info=False,
     ):
-        """Use emcee to fit microlensing events.
+        """
+        Use emcee to fit microlensing events.
+        It seems that emcee does not record all the samples.
+        The best samples recorded by the event seems always smaller than the best sample in the dataframe.
 
         Parameters
         ----------
