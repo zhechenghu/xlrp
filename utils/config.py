@@ -102,6 +102,9 @@ class ReadInfo(ConfigFile):
             errfac_dict[observatory] = self.get_errfac(observatory)
         return errfac_dict
 
+    def get_base_ob_id(self):
+        return self.event_info["Control_Parameter"]["base_ob_id"]
+
 
 class WriteInfo(ConfigFile):
     def save_yaml(self):
@@ -206,6 +209,11 @@ class WriteInfo(ConfigFile):
         self.event_info["Error_Rescaling"][f"errfac_{observatory}"] = errfac
         self.save_yaml()
 
+    def set_base_ob_id(self, base_ob_id: str):
+        assert base_ob_id in self.event_info["Event_Info"]["observatories"]
+        self.event_info["Control_Parameter"]["base_ob_id"] = base_ob_id
+        self.save_yaml()
+
 
 def init_datafile_dict(data_dir, ob_id_list):
     def datafile_item(data_dir, file_id):
@@ -228,6 +236,17 @@ def init_bad_datafile_dict(datafile_dict):
 
 def init_errfac_dict(ob_id_list):
     return {"errfac_" + observatory: [0.003, 1.0] for observatory in ob_id_list}
+
+
+def init_base_ob_id(ob_id_list):
+    if "ogle" in ob_id_list:
+        return "ogle"
+    elif "OB" in ob_id_list:
+        return "OB"
+    else:
+        for ob_id in ob_id_list:
+            if ob_id.startswith("C") and "I" in ob_id:
+                return ob_id
 
 
 def init_cfg_file(
@@ -275,6 +294,7 @@ def init_cfg_file(
             "zero_blend": False,
             "t_range": None,
             "fitting_method": "downhill",
+            "base_ob_id": None,
             "emcee_opt_dict": {"nwalkers": 30, "nstep": 1000, "nburn": 1000},
             "dynesty_opt_dict": {"nlive": 500, "bound": "multi", "sample": "rwalk"},
         },
@@ -291,6 +311,7 @@ def init_cfg_file(
     bad_dict = init_bad_datafile_dict(data_dict)
     event_info["Data_File"] = {**data_dict, **bad_dict}
     event_info["Error_Rescaling"] = init_errfac_dict(ob_id_list)
+    event_info["Control_Parameter"]["base_ob_id"] = init_base_ob_id(ob_id_list)
 
     event_config_path = os.path.join(event_dir, f"{event_name}_config.yml")
     with open(event_config_path, "w", encoding="utf-8") as f:
