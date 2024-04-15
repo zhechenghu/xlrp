@@ -191,7 +191,7 @@ class WriteInfo(ConfigFile):
         self.save_yaml()
         return
 
-    def set_emcee_options(self, n_walkers=30, n_burn=200, n_steps=300):
+    def set_emcee_options(self, n_walkers=30, n_burn=1000, n_steps=1000):
         self.event_info["Control_Parameter"]["emcee_opt_dict"] = {
             "nwalkers": n_walkers,
             "nstep": n_steps,
