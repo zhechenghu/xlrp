@@ -255,7 +255,7 @@ def init_base_ob_id(ob_id_list):
         return "OB"
     else:
         for ob_id in ob_id_list:
-            if ob_id.startswith("C") and "I" in ob_id:
+            if ob_id.startswith("KMTC") and "I" in ob_id:
                 return ob_id
 
 
