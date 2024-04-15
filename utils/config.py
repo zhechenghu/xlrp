@@ -105,6 +105,9 @@ class ReadInfo(ConfigFile):
     def get_base_ob_id(self):
         return self.event_info["Control_Parameter"]["base_ob_id"]
 
+    def get_color_dict(self):
+        return self.event_info["Control_Parameter"]["color_dict"]
+
 
 class WriteInfo(ConfigFile):
     def save_yaml(self):
@@ -214,6 +217,11 @@ class WriteInfo(ConfigFile):
         self.event_info["Control_Parameter"]["base_ob_id"] = base_ob_id
         self.save_yaml()
 
+    def set_color(self, ob_id, color):
+        assert ob_id in self.event_info["Event_Info"]["observatories"]
+        self.event_info["Control_Parameter"]["color_dict"][ob_id] = color
+        self.save_yaml()
+
 
 def init_datafile_dict(data_dir, ob_id_list):
     def datafile_item(data_dir, file_id):
@@ -247,6 +255,26 @@ def init_base_ob_id(ob_id_list):
         for ob_id in ob_id_list:
             if ob_id.startswith("C") and "I" in ob_id:
                 return ob_id
+
+
+def init_color_dict(ob_id_list):
+    default_color_dict = {
+        "OGLE": "black",
+        "KMT_C": "C3",  # red
+        "KMT_A": "C0",  # blue
+        "KMT_S": "C2",  # green
+    }
+    color_dict = {}
+    for ob_id in ob_id_list:
+        if "ogle" in ob_id.lower():
+            color_dict[ob_id] = default_color_dict["OGLE"]
+        elif "kmtc" in ob_id.lower():
+            color_dict[ob_id] = default_color_dict["KMT_C"]
+        elif "kmta" in ob_id.lower():
+            color_dict[ob_id] = default_color_dict["KMT_A"]
+        elif "kmts" in ob_id.lower():
+            color_dict[ob_id] = default_color_dict["KMT_S"]
+    return color_dict
 
 
 def init_cfg_file(
@@ -297,6 +325,7 @@ def init_cfg_file(
             "base_ob_id": None,
             "emcee_opt_dict": {"nwalkers": 30, "nstep": 1000, "nburn": 1000},
             "dynesty_opt_dict": {"nlive": 500, "bound": "multi", "sample": "rwalk"},
+            "color_dict": {},
         },
         "Error_Rescaling": {},  # In general, it is [0.003, 1.0]
     }
@@ -312,6 +341,7 @@ def init_cfg_file(
     event_info["Data_File"] = {**data_dict, **bad_dict}
     event_info["Error_Rescaling"] = init_errfac_dict(ob_id_list)
     event_info["Control_Parameter"]["base_ob_id"] = init_base_ob_id(ob_id_list)
+    event_info["Control_Parameter"]["color_dict"] = init_color_dict(ob_id_list)
 
     event_config_path = os.path.join(event_dir, f"{event_name}_config.yml")
     with open(event_config_path, "w", encoding="utf-8") as f:
