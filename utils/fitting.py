@@ -444,6 +444,7 @@ class FitUtils:
         include_blobs: bool = False,
         return_chain: bool = False,
         print_info=False,
+        pool=None,
     ):
         """
         Use emcee to fit microlensing events.
@@ -499,6 +500,7 @@ class FitUtils:
                 flux_dict,
                 include_blobs,
             ),
+            pool=pool,
         )
         event.get_chi2()  # initialize the event, otherwise the first chi2 is none?
         ## run EMCEE ##
