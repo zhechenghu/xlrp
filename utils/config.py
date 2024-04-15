@@ -227,7 +227,9 @@ def init_datafile_dict(data_dir, ob_id_list):
     def datafile_item(data_dir, file_id):
         file_list = os.listdir(data_dir)
         target_file_list = [
-            file_name for file_name in file_list if file_id in file_name
+            file_name
+            for file_name in file_list
+            if file_id in file_name and ".bad" not in file_name
         ]
         if len(target_file_list) == 0:
             raise ValueError(f"No file found with id {file_id} in {data_dir}")
