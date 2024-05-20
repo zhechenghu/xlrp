@@ -80,7 +80,10 @@ class Event(object):
                 "f_b_err": None,
             }
         self.chi2: float = 9e9
-        self.best_chi2: float = 9e9  # This is a large number. Don't use np.inf to avoid error when converting to float.
+        self.best_chi2: float = (
+            9e9  # This is a large number. Don't use np.inf to avoid error when converting to float.
+        )
+        self.best_chi2_dict: dict | None = None
         self.best_params: dict | None = None
         return
 
@@ -162,13 +165,31 @@ class Event(object):
                 flux = self.dataset.data_dict[obname]["flux"]
                 ferr = self.dataset.data_dict[obname]["ferr"]
                 f_s = f_b = None
-                flux_tuple = self.fit_fsfb_single(
-                    flux, ferr, magnification, self.zero_blend_dict[obname], f_s, f_b
-                )
-                self.flux_dict[obname]["f_s"] = flux_tuple[0]
-                self.flux_dict[obname]["f_b"] = flux_tuple[1]
-                self.flux_dict[obname]["f_s_err"] = flux_tuple[2]
-                self.flux_dict[obname]["f_b_err"] = flux_tuple[3]
+                try:
+                    flux_tuple = self.fit_fsfb_single(
+                        flux,
+                        ferr,
+                        magnification,
+                        self.zero_blend_dict[obname],
+                        f_s,
+                        f_b,
+                    )
+                    self.flux_dict[obname]["f_s"] = flux_tuple[0]
+                    self.flux_dict[obname]["f_b"] = flux_tuple[1]
+                    self.flux_dict[obname]["f_s_err"] = flux_tuple[2]
+                    self.flux_dict[obname]["f_b_err"] = flux_tuple[3]
+                except np.linalg.LinAlgError:
+                    # When failed to fit for fs and fb,
+                    # use the value from the previous run, i.e., do nothing.
+                    # If previous values do not exsist, set a default value.
+                    if None in list(self.flux_dict.values())[0].values():
+                        self.magn_dict[obname] = self.model_dict[
+                            obname
+                        ].get_magnification()
+                        self.flux_dict[obname]["f_s"] = 0.8
+                        self.flux_dict[obname]["f_b"] = 0.2
+                        self.flux_dict[obname]["f_s_err"] = 0.0
+                        self.flux_dict[obname]["f_b_err"] = 0.0
         return flux_dict
 
     @staticmethod
@@ -181,19 +202,7 @@ class Event(object):
         return chi2
 
     def get_chi2(self, flux_dict=None):
-        try:
-            self.fit_fsfb_all(flux_dict)
-        # TODO: this fuctioin should be in fit_fsfb_all
-        except np.linalg.LinAlgError:
-            # When failed to fit for fs and fb,
-            # use the value from the previous run, i.e., do nothing.
-            # If previous values do not exsist, set a default value.
-            if None in list(self.flux_dict.values())[0].values():
-                for obname in self.all_ob_tup:
-                    self.flux_dict[obname]["f_s"] = 0.8
-                    self.flux_dict[obname]["f_b"] = 0.2
-                    self.flux_dict[obname]["f_s_err"] = 0.0
-                    self.flux_dict[obname]["f_b_err"] = 0.0
+        self.fit_fsfb_all(flux_dict)
 
         for obname in self.all_ob_tup:
             magnification = self.magn_dict[obname]
@@ -206,6 +215,7 @@ class Event(object):
         this_chi2 = np.sum(list(self.chi2_dict.values()))
         if this_chi2 < self.best_chi2:
             self.best_chi2 = this_chi2
+            self.best_chi2_dict = self.chi2_dict.copy()
             self.best_params = self.model_dict[obname].parameters.copy()
         self.chi2 = this_chi2
         return this_chi2
