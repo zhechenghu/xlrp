@@ -284,7 +284,7 @@ class FitUtils:
             "t_0_2": {"scale": jd_end - jd_start, "loc": jd_start},
             "u_0": {"scale": 10.0, "loc": 0.0},
             "u_0_2": {"scale": 10.0, "loc": 0.0},
-            "t_E": {"scale": 500.0, "loc": 0.0},
+            "t_E": {"scale": 1000.0, "loc": 0.0},
             "pi_E_N": {"scale": 20.0, "loc": -10.0},
             "pi_E_E": {"scale": 20.0, "loc": -10.0},
             "xi_E_N": {"scale": 2.0, "loc": -1.0},
