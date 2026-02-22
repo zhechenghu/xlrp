@@ -268,7 +268,7 @@ def init_color_dict(ob_id_list):
     }
     color_dict = {}
     for ob_id in ob_id_list:
-        if "ogle" in ob_id.lower():
+        if "ogle" in ob_id.lower() or "ob" in ob_id.lower():
             color_dict[ob_id] = default_color_dict["OGLE"]
         elif "kmtc" in ob_id.lower():
             color_dict[ob_id] = default_color_dict["KMT_C"]
