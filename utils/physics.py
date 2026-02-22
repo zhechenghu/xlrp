@@ -165,3 +165,18 @@ class PhyParams(object):
         """
         mu_rel = theta_E / t_E * 365.25
         return mu_rel
+
+    @staticmethod
+    def compute_theta_E_physical(D_l, D_s, M_l):
+        """
+        Compute the physical Einstein radius in mas.
+        D_l is in kpc,
+        D_s is in kpc,
+        M_l is in Msun.
+        """
+        return (
+            0.55
+            * np.sqrt((1 - D_l / D_s) / (D_l / D_s))
+            * (D_s / 8) ** (-1 / 2)
+            * (M_l / 0.3) ** (1 / 2)
+        )
