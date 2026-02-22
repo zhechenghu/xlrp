@@ -143,7 +143,7 @@ class PlotLC:
         # fmt: on
         return plot_data_dict
 
-    def plot_data(self, ax1, bin_data=False, **kwargs):
+    def plot_data(self, ax1, bin_data=False, dt=None, **kwargs):
         for obname in self.data_dict:
             if obname == "spitzer":
                 y = -2.5 * np.log10(self.data_dict[obname]["flux"])
@@ -155,11 +155,13 @@ class PlotLC:
                     **kwargs,
                 )
             elif bin_data:
+                if dt == None:
+                    dt = 1.0
                 data_binned, new_dt = binningx0dt(
                     self.data_dict[obname]["date"],
                     self.data_dict[obname]["mag"],
                     yerr=self.data_dict[obname]["merr"],
-                    dt=1.0,
+                    dt=dt,
                     useBinCenter=True,
                 )
                 ax1.errorbar(
@@ -167,6 +169,7 @@ class PlotLC:
                     data_binned[:, 1],
                     yerr=data_binned[:, 2],
                     color=self.color_dict[obname],
+                    label=obname,
                     **kwargs,
                 )
             else:
@@ -176,6 +179,7 @@ class PlotLC:
                         self.data_dict[obname]["mag"],
                         yerr=self.data_dict[obname]["merr"],
                         color=self.color_dict[obname],
+                        label=obname,
                         **kwargs,
                     )
                 except ValueError:
@@ -314,6 +318,7 @@ class PlotLC:
     def plot_all(
         self,
         bin_data=True,
+        dt=None,
         general_data_fmt={
             "fmt": "o",
             "markerfacecolor": "none",
@@ -336,7 +341,7 @@ class PlotLC:
             return_full = False
 
         if data_ax is not None:
-            self.plot_data(data_ax, bin_data=bin_data, **general_data_fmt)
+            self.plot_data(data_ax, bin_data=bin_data, dt=dt, **general_data_fmt)
             self.plot_model(
                 data_ax, obname_list=[self.event_ri.get_base_ob_id()], **model_fmt
             )
@@ -345,7 +350,7 @@ class PlotLC:
                 self.model_date[-1] - self.date_offset,
             )
         if res_ax is not None:
-            self.plot_res(res_ax, bin_data=bin_data, **general_data_fmt)
+            self.plot_res(res_ax, bin_data=bin_data, dt=dt, **general_data_fmt)
             res_ax.set_xlim(
                 self.model_date[0] - self.date_offset,
                 self.model_date[-1] - self.date_offset,
